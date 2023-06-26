@@ -11,3 +11,4 @@ z_train = np.array([1, 2, 3, 4]).T
 print(f"{z_train=}")
 
 rf.fit(X_train, z_train, num_trees, num_features)
+rf.predict(X_train)
