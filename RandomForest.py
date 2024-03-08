@@ -40,4 +40,6 @@ class RandomForest:
             prediction = decision_tree.predict(subset_X)
             list_predictions.append(prediction)
 
+        # TODO actually use list_predictions
+
 
