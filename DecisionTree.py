@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 
 class DecisionTree:
@@ -7,32 +8,45 @@ class DecisionTree:
 
     def fit(self, X, t):
         # decide which column becomes root
-        gini_indices = []
-        for X_column in X.shape[1]:
+        gini_indices = self._get_gini_index_for_columns(X, t)
+        root_column = X[:, np.argmin(gini_indices)]
+        print(root_column)
+
+    def predict(self, X):
+        pass
+
+    def _get_gini_index_for_columns(self, X, t):
+        gini_indices = np.ones(X.shape[1], dtype=float)
+        for column in range(X.shape[1]):
+            X_column = X[:, column]
             if self._is_numeric(X_column):
                 # sort column
                 sorted_X_column = np.sort(X_column)
                 # calculate pairwise averages
-                pairwise_averages = np.zeros(sorted_X_column.shape - 1, dtype=float)
-                for current_value in sorted_X_column.shape[1] - 1:
+                pairwise_averages = np.zeros(sorted_X_column.shape[0] - 1, dtype=float)
+                for current_value in range(sorted_X_column.shape[0] - 1):
                     next_value = current_value + 1
                     pairwise_averages[current_value] = (
                         sorted_X_column[current_value] + sorted_X_column[next_value]
                     ) / 2
 
                 # calculate gini index for < pairwise average
+                pairwise_gini_indices = []
+                for pairwise_avg in pairwise_averages:
+                    discrete_X_column = np.where(X_column < pairwise_avg, 1, 0)
+                    pairwise_gini_index = self._get_weighted_gini_index(
+                        discrete_X_column, t
+                    )
+                    pairwise_gini_indices.append(pairwise_gini_index)
+
                 # select lowest gini index to represent this column
+                gini_index = min(pairwise_gini_indices)
+                gini_indices[column] = gini_index
+            else:
+                gini_index = self._get_weighted_gini_index(X_column, t)
+                gini_indices[column] = gini_index
 
-            gini_index = self._get_weighted_gini_index(X_column, t)
-            gini_indices.append(gini_index)
-
-    def predict(self, X):
-        pass
-
-    def _get_weighted_gini_index_numeric(self, X_column, t):
-        # write a method to calculate gini index in numeric case
-        # TODO generalize with discrete method later :)
-        pass
+        return gini_indices
 
     def _get_weighted_gini_index(self, X_column, t):
         # get weights for weighted gini index
@@ -50,7 +64,7 @@ class DecisionTree:
             # get gini index
             gini_index = 1
             for probability in probabilities:
-                gini_index -= probability²
+                gini_index -= probability**2
 
             gini_indices[i] = gini_index
 
@@ -62,6 +76,6 @@ class DecisionTree:
     def _is_numeric(self, X_column):
         # assumes only float values are continous numeric values
         if X_column.dtype == "float":
-            return true
+            return True
         else:
-            return false
+            return False
