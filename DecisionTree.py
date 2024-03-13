@@ -3,14 +3,16 @@ import copy
 
 
 class DecisionTree:
-    def __init__(self):
-        pass
+    def __init__(self, max_depth):
+        self.max_depth = max_depth
 
     def fit(self, X, t):
         # decide which column becomes root
         gini_indices = self._get_gini_index_for_columns(X, t)
         root_column = X[:, np.argmin(gini_indices)]
         print(root_column)
+        # TODO code a tree
+        # TODO implement recursive algorithm
 
     def predict(self, X):
         pass
