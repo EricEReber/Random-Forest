@@ -3,16 +3,39 @@ import copy
 
 
 class DecisionTree:
-    def __init__(self, max_depth):
+    def __init__(self, max_depth=np.inf):
         self.max_depth = max_depth
 
     def fit(self, X, t):
-        # decide which column becomes root
-        gini_indices = self._get_gini_index_for_columns(X, t)
-        root_column = X[:, np.argmin(gini_indices)]
-        print(root_column)
-        # TODO code a tree
-        # TODO implement recursive algorithm
+        # TODO split X into discrete and cont. columns
+        build_tree(X, t, depth=0, parent_node=None, child="yes", gini_index=np.inf)
+
+    def build_tree(X, t, depth, parent_node, child, gini_index):
+        # TODO idea: maybe remove option and tell if yes or no based on X?
+        if (depth == max_depth) or (gini_index == 0):
+            parent_node.add_result(t)
+            return
+        else:
+            depth += 1
+            gini_indices, threshold = self._get_gini_index_for_columns(X, t)
+            gini_index = np.min(gini_indices)
+            node_column = X[:, np.argmin(gini_indices)]
+            yes, no, t_yes, t_no = self.split_dataset(X, t, node_column)
+
+            if option == "yes":
+                node = self.add_yes(parent_node, column, threshold)
+            else:
+                node = self.add_no(parent_node, column, threshold)
+
+            build_tree(yes, t_yes, depth, node, "yes", gini_index)
+            build_tree(no, t_no, depth, node, "no", gini_index)
+        
+        # TODO write add_result()
+        # TODO write split_dataset()
+        # TODO write add_yes()
+        # TODO write add_no()
+
+
 
     def predict(self, X):
         pass
@@ -41,14 +64,17 @@ class DecisionTree:
                     )
                     pairwise_gini_indices.append(pairwise_gini_index)
 
+                threshold = pairwise_averages[np.argmin(pairwise_gini_indices)]
+
                 # select lowest gini index to represent this column
                 gini_index = min(pairwise_gini_indices)
                 gini_indices[column] = gini_index
             else:
+                threshold = None
                 gini_index = self._get_weighted_gini_index(X_column, t)
                 gini_indices[column] = gini_index
 
-        return gini_indices
+        return gini_indices, threshold
 
     def _get_weighted_gini_index(self, X_column, t):
         # get weights for weighted gini index
