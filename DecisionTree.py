@@ -1,6 +1,6 @@
 import numpy as np
 import copy
-from Nodes import Node
+from Nodes import Node, ResultNode
 
 
 class DecisionTree:
@@ -13,7 +13,9 @@ class DecisionTree:
     def fit(self, X, t):
         # fit tree using recursive build_tree() method
 
-        if classification_tree:
+        # TODO write deque!
+
+        if self.classification_tree:
             self._build_classification_tree(
                 X, t, depth=0, gini_index=np.inf, parent_node=None, child_node_type=None
             )
@@ -21,57 +23,93 @@ class DecisionTree:
             self._build_regression_tree(X, t)
             # TODO write _build_regression_tree()
 
-    def _build_classification_tree(X, t, depth, gini_index, parent_node, child_node_type):
+    def _build_classification_tree(
+        self, X, t, depth, gini_index, parent_node, child_node_type, original_indices
+    ):
+        # TODO maybe remove gini index parameter and instead check in same recursive call
+
         # check stop conditions
-        if (depth == max_depth) or (gini_index == 0):
+        if (depth == self.max_depth) or (gini_index == 0):
             # classification case
             # find most occuring class value in target vector
             values, counts = np.unique(t, return_counts=True)
             result = values[np.argmax(counts)]
 
             # add result to leaf node
-            parent_node.add_result(result)
+            print(f"{X=}")
+            print(f"{t=}")
+            print(f"{result=}")
+            result_node = ResultNode(result)
+            parent_node.add_child_node(result_node, child_node_type)
 
             # stop recursive method for branch
             return
         else:
             # get gini indices for each columns
             # find feature with min gini index
-            gini_indices, threshold = self._get_gini_index_for_columns(X, t)
+            gini_indices, thresholds = self._get_gini_index_for_columns(X, t)
             gini_index = np.min(gini_indices)
-            X_column = np.argmin(gini_indices)
+            print(f"{gini_index=}")
+            X_feature = np.argmin(gini_indices)
+            threshold = thresholds[X_feature]
             # split dataset into yes/no subsets
-            X_yes, X_no, t_yes, t_no = self.split_dataset(X, t, X_column)
+            X_yes, X_no, t_yes, t_no = self._split_dataset(X, t, X_feature, threshold)
 
             # create child node
-            child_node = Node(X_column, threshold)
+            child_node = Node(X_feature, threshold)
 
             # connect to parent node or make root
             if depth == 0:
+                print("ADD ROOT")
                 self.root = child_node
             else:
+                print("ADD CHILD")
                 parent_node.add_child_node(child_node, child_node_type)
 
             # increase depth counter
             depth += 1
 
             # recursive method call
-            self._build_tree(
-                X_yes, t_yes, depth, child_node, gini_index, child_node_type="yes_node"
+            self._build_classification_tree(
+                X_yes, t_yes, depth, gini_index, child_node, child_node_type="yes_node"
             )
-            self._build_tree(
-                X_no, t_no, depth, child_node, gini_index, child_node_type="no_node"
+            self._build_classification_tree(
+                X_no, t_no, depth, gini_index, child_node, child_node_type="no_node"
             )
 
-        # TODO write split_dataset()
+    def _split_dataset(self, X, t, X_feature, threshold):
+        X_column = X[:, X_feature]
+        if not self._is_numeric(X_column):
+            X = np.delete(X, X_feature, axis=1)
+
+        # get indices of rows where feature > threshold
+        yes_indices = np.asarray(X_column >= threshold).nonzero()[0]
+        X_yes = X[yes_indices, :]
+        print(f"{X_feature=}")
+        print(f"{t=}")
+        print(f"{yes_indices=}")
+        t_yes = t[yes_indices]
+
+        # get indices of rows where feature < threshold
+        no_indices = np.asarray(X_column < threshold).nonzero()[0]
+        X_no = X[no_indices, :]
+        t_no = t[no_indices]
+
+        return X_yes, X_no, t_yes, t_no
 
     def predict(self, X):
         # start at root
         current_node = self.root
 
         # traverse down tree until leaf node
-        while current_node.has_children():
+        print("ABOVE")
+        print(f"{self.root.yes_child=}")
+        print(f"{self.root.no_child=}")
+        while isinstance(current_node, Node):
             feature = current_node.get_X_column()
+            threshold = current_node.get_threshold()
+            print(f"{feature=}")
+            print(f"{X[feature]=}")
             if X[feature] >= threshold:
                 current_node = current_node.get_yes_child()
             else:
@@ -87,6 +125,9 @@ class DecisionTree:
 
         # initialize gini index array
         gini_indices = np.ones(num_features, dtype=float)
+        thresholds = np.ones(num_features, dtype=float)
+
+        # TODO fix global indices
 
         # for every feature
         for feature in range(num_features):
@@ -114,7 +155,9 @@ class DecisionTree:
                     pairwise_gini_indices.append(pairwise_gini_index)
 
                 # get threshold
-                threshold = pairwise_averages[np.argmin(pairwise_gini_indices)]
+                thresholds[feature] = pairwise_averages[
+                    np.argmin(pairwise_gini_indices)
+                ]
 
                 # select lowest gini index to represent this feature
                 gini_index = min(pairwise_gini_indices)
@@ -123,13 +166,13 @@ class DecisionTree:
             # if discrete feature
             else:
                 # set binary threshold
-                threshold = 0.5
+                thresholds[feature] = 0.5
 
                 # calculate gini index for feature
                 gini_index = self._get_weighted_gini_index(X_column, t)
                 gini_indices[feature] = gini_index
 
-        return gini_indices, threshold
+        return gini_indices, thresholds
 
     def _get_weighted_gini_index(self, X_column, t):
         # get weights for weighted gini index
@@ -158,7 +201,11 @@ class DecisionTree:
 
     def _is_numeric(self, X_column):
         # assumes no == 0, yes == 1 in discrete case
-        if np.array_equal(np.unique(X_column), np.array([0, 1])):
+        if (
+            np.array_equal(np.unique(X_column), np.array([0, 1]))
+            or np.array_equal(np.unique(X_column), np.array([0]))
+            or np.array_equal(np.unique(X_column), np.array([1]))
+        ):
             return False
         else:
             return True
