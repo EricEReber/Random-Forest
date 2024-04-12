@@ -1,6 +1,6 @@
 class Node:
-    def __init__(self, X_column, threshold):
-        self.X_column = X_column
+    def __init__(self, X_feature, threshold):
+        self.X_feature = X_feature
         self.threshold = threshold
         self.t = None
         self.yes_child = None
@@ -17,8 +17,8 @@ class Node:
     #         return False
     #     return True
 
-    def get_X_column(self):
-        return self.X_column
+    def get_X_feature(self):
+        return self.X_feature
 
     def get_threshold(self):
         return self.threshold
