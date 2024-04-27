@@ -1,8 +1,8 @@
 class Node:
-    def __init__(self, X_feature, threshold):
+    def __init__(self, X_feature, threshold, result):
         self.X_feature = X_feature
         self.threshold = threshold
-        self.t = None
+        self.t = result
         self.yes_child = None
         self.no_child = None
 
@@ -12,16 +12,17 @@ class Node:
         else:
             self.no_child = child_node
 
-    # def has_children(self):
-    #     if (self.yes_child == None) and (self.no_child == None):
-    #         return False
-    #     return True
+    def has_children(self):
+        if (self.yes_child == None) and (self.no_child == None):
+            return False
+        return True
 
     def get_X_feature(self):
         return self.X_feature
 
     def get_threshold(self):
         return self.threshold
+
 
     def get_yes_child(self):
         return self.yes_child

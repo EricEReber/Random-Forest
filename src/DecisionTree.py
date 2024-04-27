@@ -16,7 +16,12 @@ class DecisionTree:
 
         if self.classification_tree:
             self._build_classification_tree(
-                X, t, branch_depth=0, gini_index=np.inf, parent_node=None, child_node_type=None
+                X,
+                t,
+                branch_depth=0,
+                # gini_index=np.inf,
+                parent_node=None,
+                child_node_type=None,
             )
         else:
             self._build_regression_tree(X, t)
@@ -30,12 +35,15 @@ class DecisionTree:
         for i in range(X.shape[0]):
             # start at root
             current_node = self.root
+            next_node = current_node
+
             # for keeping track of global feature indices
             features = [j for j in range(X.shape[1])]
             is_numeric_feature = [self._is_numeric(X[:, i]) for i in range(X.shape[1])]
 
             # traverse down tree until leaf node
-            while isinstance(current_node, Node):
+            while next_node is not None:
+                current_node = next_node
                 feature = features[current_node.get_X_feature()]
                 if not is_numeric_feature[feature]:
                     features.pop(feature)
@@ -43,33 +51,87 @@ class DecisionTree:
 
                 threshold = current_node.get_threshold()
                 if X[i, feature] >= threshold:
-                    current_node = current_node.get_yes_child()
+                    next_node = current_node.get_yes_child()
                 else:
-                    current_node = current_node.get_no_child()
+                    next_node = current_node.get_no_child()
 
             # prediction is result stored at leaf node
             prediction[i] = current_node.get_result()
 
-        print(f"{prediction=}")
         return prediction
 
     def accuracy(self, t, pred):
         return np.average(t == pred)
 
     def _build_classification_tree(
+        self, X, t, branch_depth, parent_node, child_node_type
+    ):
+
+        gini_indices, thresholds = self._get_gini_index_for_columns(X, t)
+        gini_index = np.min(gini_indices)
+
+        X_feature = np.argmin(gini_indices)
+        threshold = thresholds[X_feature]
+
+        # create and connect child node
+        if t.size:
+            values, counts = np.unique(t, return_counts=True)
+            result = values[np.argmax(counts)]
+            child_node = Node(X_feature, threshold, result)
+
+            # connect to parent node or make root
+            if branch_depth == 0:
+                self.root = child_node
+            else:
+                parent_node.add_child_node(child_node, child_node_type)
+
+        # increase branch_depth counter
+        branch_depth += 1
+
+        # conditions for stopping recursion
+        if (branch_depth == self.max_depth) or (gini_index == 0):
+            return
+
+        else:
+            # split dataset into yes/no datasets
+            X_yes, X_no, t_yes, t_no = self._split_dataset(X, t, X_feature, threshold)
+
+            # recursive method call
+            self._build_classification_tree(
+                X_yes,
+                t_yes,
+                branch_depth,
+                child_node,
+                child_node_type="yes_node",
+            )
+            self._build_classification_tree(
+                X_no,
+                t_no,
+                branch_depth,
+                child_node,
+                child_node_type="no_node",
+            )
+
+    def OLD_build_classification_tree(
         self, X, t, branch_depth, gini_index, parent_node, child_node_type
     ):
 
-        # check stop conditions
+        # check stop conditions:
+        # max depth is reached
+        # gini index = 0 so further splits would yield no gain
+        # there is only one row left
         if (branch_depth == self.max_depth) or (gini_index == 0):
             # classification case
             # find most occuring class value in target vector
-            values, counts = np.unique(t, return_counts=True)
-            result = values[np.argmax(counts)]
+            # check that target not empty
+            if t.size:
+                values, counts = np.unique(t, return_counts=True)
+                print(f"{t=}")
+                result = values[np.argmax(counts)]
 
-            # add result to leaf node
-            result_node = ResultNode(result)
-            parent_node.add_child_node(result_node, child_node_type)
+                # add result to leaf node
+                result_node = ResultNode(result)
+                parent_node.add_child_node(result_node, child_node_type)
 
             # stop recursive method for branch
             return
@@ -97,10 +159,20 @@ class DecisionTree:
 
             # recursive method call
             self._build_classification_tree(
-                X_yes, t_yes, branch_depth, gini_index, child_node, child_node_type="yes_node"
+                X_yes,
+                t_yes,
+                branch_depth,
+                gini_index,
+                child_node,
+                child_node_type="yes_node",
             )
             self._build_classification_tree(
-                X_no, t_no, branch_depth, gini_index, child_node, child_node_type="no_node"
+                X_no,
+                t_no,
+                branch_depth,
+                gini_index,
+                child_node,
+                child_node_type="no_node",
             )
 
     def _split_dataset(self, X, t, X_feature, threshold):
@@ -135,40 +207,46 @@ class DecisionTree:
         # for every feature
         for feature in range(num_features):
             X_column = X[:, feature]
-    
+
             # if feature is numeric
             if self._is_numeric(X_column):
-                # sort X_column
-                sorted_X_column = np.sort(X_column)
-                # calculate pairwise averages
-                pairwise_averages = np.zeros(num_inputs - 1, dtype=float)
-                for current_input_index in range(num_inputs - 1):
-                    next_input_index = current_input_index + 1
-                    pairwise_averages[current_input_index] = (
-                        sorted_X_column[current_input_index] + sorted_X_column[next_input_index]
-                    ) / 2
 
-                # calculate gini index for X_column < pairwise average
-                pairwise_gini_indices = []
-                for pairwise_avg in pairwise_averages:
-                    discrete_X_column = np.where(X_column < pairwise_avg, 1, 0)
-                    pairwise_gini_index = self._get_weighted_gini_index(
-                        discrete_X_column, t
-                    )
-                    pairwise_gini_indices.append(pairwise_gini_index)
-                # TODO ONLY FOR DEBUG
-                # TODO current theory: when X_column only has 1 value left due to numeric values, the pairwise gini indices cannot be calculated, though the gini obviously in this case has to be 0. Suggested fix, exception for X_column.shape == (1,1), but first investigate if this should ever even happen! If so, fix that :) gl tomorrow eric
-                print(f"{pairwise_gini_indices=}")
-                print(f"{sorted_X_column=}")
+                # if column only has one entry edge case
+                if X_column.size == 1:
+                    gini_indices[feature] = 0
+                    thresholds[feature] = X_column[0]
 
-                # get threshold
-                thresholds[feature] = pairwise_averages[
-                    np.argmin(pairwise_gini_indices)
-                ]
+                else:
+                    # sort X_column
+                    sorted_X_column = np.sort(X_column)
+                    # calculate pairwise averages
+                    pairwise_averages = np.zeros(num_inputs - 1, dtype=float)
+                    for current_input_index in range(num_inputs - 1):
+                        next_input_index = current_input_index + 1
+                        pairwise_averages[current_input_index] = (
+                            sorted_X_column[current_input_index]
+                            + sorted_X_column[next_input_index]
+                        ) / 2
 
-                # select lowest gini index to represent this feature
-                gini_index = min(pairwise_gini_indices)
-                gini_indices[feature] = gini_index
+                    # calculate gini index for X_column < pairwise average
+                    pairwise_gini_indices = []
+                    for pairwise_avg in pairwise_averages:
+                        discrete_X_column = np.where(X_column < pairwise_avg, 1, 0)
+                        pairwise_gini_index = self._get_weighted_gini_index(
+                            discrete_X_column, t
+                        )
+                        pairwise_gini_indices.append(pairwise_gini_index)
+                    # TODO ONLY FOR DEBUG
+                    # TODO current theory: when X_column only has 1 value left due to numeric values, the pairwise gini indices cannot be calculated, though the gini obviously in this case has to be 0. Suggested fix, exception for X_column.shape == (1,1), but first investigate if this should ever even happen! If so, fix that :) gl tomorrow eric
+
+                    # get threshold
+                    thresholds[feature] = pairwise_averages[
+                        np.argmin(pairwise_gini_indices)
+                    ]
+
+                    # select lowest gini index to represent this feature
+                    gini_index = min(pairwise_gini_indices)
+                    gini_indices[feature] = gini_index
 
             # if discrete feature
             else:
