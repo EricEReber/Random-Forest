@@ -13,9 +13,38 @@ class test_DecisionTree(unittest.TestCase):
 
     def setUp(self):
         mnist = load_breast_cancer(return_X_y=True)
-        X_train, X_test, t_train, t_test = train_test_split(mnist[0], mnist[1])
+        self.X_train, self.X_test, self.t_train, self.t_test = train_test_split(
+            mnist[0], mnist[1]
+        )
 
         self.decisionTree = DecisionTree(max_depth=np.inf, classification_tree=True)
+
+    def test_predict(self):
+        X = np.array([[1, 0, 0], [1, 1, 0], [0, 0, 1]])
+        t = np.array([1, 1, 0])
+        self.decisionTree.fit(X, t)
+
+        self.assertEqual(np.array_equal(self.decisionTree.predict(X), t), True)
+
+        X = np.array([[1, 1, 0, 0, 1], [1, 1, 0, 0, 1], [0, 0, 1, 0, 0], [1, 0, 1, 0, 1]]).T
+        t = np.array([1, 1, 0, 0, 1])
+
+        self.decisionTree.fit(X, t)
+
+        self.assertEqual(np.array_equal(self.decisionTree.predict(X), t), True)
+
+    def test_build_classification_tree(self):
+
+        # test depth
+        dt = DecisionTree(max_depth=2)
+        dt.fit(self.X_train, self.t_train)
+
+        self.assertLessEqual(dt.tree_depth, dt.max_depth)
+
+        dt = DecisionTree(max_depth=7)
+        dt.fit(self.X_train, self.t_train)
+
+        self.assertLessEqual(dt.tree_depth, dt.max_depth)
 
     def test_get_gini_index_for_columns(self):
         X_one = np.array([[1, 1, 0, 0, 1, 1, 0], [7, 12, 18, 35, 38, 50, 83]]).T
@@ -78,31 +107,33 @@ class test_DecisionTree(unittest.TestCase):
         X_single_values = np.array([[1], [0], [1]]).T
         t_single_values = np.array([1, 1, 1])
 
-        expected_ginis = [0,0,0]
+        expected_ginis = [0, 0, 0]
         expected_thresholds = [0.5, 0.5, 0.5]
 
         self.assertEqual(
             np.array_equal(
                 np.round(
-                    self.decisionTree._get_gini_index_for_columns(X_single_values, t_single_values)[0],
+                    self.decisionTree._get_gini_index_for_columns(
+                        X_single_values, t_single_values
+                    )[0],
                     3,
                 ),
                 expected_ginis,
             ),
-            True
+            True,
         )
         self.assertEqual(
             np.array_equal(
                 np.round(
-                    self.decisionTree._get_gini_index_for_columns(X_single_values, t_single_values)[1],
+                    self.decisionTree._get_gini_index_for_columns(
+                        X_single_values, t_single_values
+                    )[1],
                     3,
                 ),
                 expected_thresholds,
             ),
             True,
         )
-
-
 
     def test_get_weighted_gini_index(self):
 
@@ -236,6 +267,34 @@ class test_DecisionTree(unittest.TestCase):
         self.assertEqual(X_yes.shape, (2, 3))
         self.assertEqual(t_yes.shape, (2,))
 
+        # additional tests
 
+        X = np.array([[1, 1, 0, 0, 1, 1, 0], [7, 12, 18, 35, 38, 50, 83]]).T
+        t = np.array([0, 0, 1, 1, 1, 0, 0])
+        discrete_threshold = 0.5
+        discrete_index = 0
+
+        X_yes, X_no, t_yes, t_no = self.decisionTree._split_dataset(
+            X, t, discrete_index, discrete_threshold
+        )
+
+        self.assertEqual(X_yes.shape, (4, 1))
+        self.assertEqual(t_yes.shape, (4,))
+        self.assertEqual(X_no.shape, (3, 1))
+        self.assertEqual(t_no.shape, (3,))
+
+        numeric_threshold = 12
+        numeric_index = 1
+
+        X_yes, X_no, t_yes, t_no = self.decisionTree._split_dataset(
+            X, t, numeric_index, numeric_threshold
+        )
+
+        self.assertEqual(X_yes.shape, (6, 2))
+        self.assertEqual(t_yes.shape, (6,))
+        self.assertEqual(X_no.shape, (1, 2))
+        self.assertEqual(t_no.shape, (1,))
+#
+#
 if __name__ == "__main__":
     unittest.main()
