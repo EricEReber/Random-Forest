@@ -112,69 +112,6 @@ class DecisionTree:
                 child_node_type="no_node",
             )
 
-    def OLD_build_classification_tree(
-        self, X, t, branch_depth, gini_index, parent_node, child_node_type
-    ):
-
-        # check stop conditions:
-        # max depth is reached
-        # gini index = 0 so further splits would yield no gain
-        # there is only one row left
-        if (branch_depth == self.max_depth) or (gini_index == 0):
-            # classification case
-            # find most occuring class value in target vector
-            # check that target not empty
-            if t.size:
-                values, counts = np.unique(t, return_counts=True)
-                print(f"{t=}")
-                result = values[np.argmax(counts)]
-
-                # add result to leaf node
-                result_node = ResultNode(result)
-                parent_node.add_child_node(result_node, child_node_type)
-
-            # stop recursive method for branch
-            return
-        else:
-            # get gini indices for each columns
-            # find feature with min gini index
-            gini_indices, thresholds = self._get_gini_index_for_columns(X, t)
-            gini_index = np.min(gini_indices)
-            X_feature = np.argmin(gini_indices)
-            threshold = thresholds[X_feature]
-            # split dataset into yes/no subsets
-            X_yes, X_no, t_yes, t_no = self._split_dataset(X, t, X_feature, threshold)
-
-            # create child node
-            child_node = Node(X_feature, threshold)
-
-            # connect to parent node or make root
-            if branch_depth == 0:
-                self.root = child_node
-            else:
-                parent_node.add_child_node(child_node, child_node_type)
-
-            # increase branch_depth counter
-            branch_depth += 1
-
-            # recursive method call
-            self._build_classification_tree(
-                X_yes,
-                t_yes,
-                branch_depth,
-                gini_index,
-                child_node,
-                child_node_type="yes_node",
-            )
-            self._build_classification_tree(
-                X_no,
-                t_no,
-                branch_depth,
-                gini_index,
-                child_node,
-                child_node_type="no_node",
-            )
-
     def _split_dataset(self, X, t, X_feature, threshold):
         # the column we will split the dataset on
         X_column = X[:, X_feature]
