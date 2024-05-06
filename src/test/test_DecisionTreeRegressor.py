@@ -15,6 +15,7 @@ class test_DecisionTreeRegressor(unittest.TestCase):
         self.dtRegressor = DecisionTreeRegressor(min_inputs=2)
 
     def test_create_child_node(self):
+        # see if all variables of child node are added correctly
         expected_index = 0
         expected_threshold = 1
         t = [10, 20, 30, 40, 50]
@@ -27,6 +28,7 @@ class test_DecisionTreeRegressor(unittest.TestCase):
 
 
     def test_add_child_node(self):
+        # check for adding root
         expected_index = 0
         expected_threshold = 1
         expected_result = 3
@@ -40,10 +42,11 @@ class test_DecisionTreeRegressor(unittest.TestCase):
         self.assertEqual(self.dtRegressor.root.get_X_feature_threshold(), expected_threshold)
         self.assertEqual(self.dtRegressor.root.get_regression_result(), expected_result)
 
+        # check for adding child to parent node
         branch_depth = 1
         decision = False
-        self.dtRegressor._add_child_node(self.dtRegressor.root, child_node, decision, branch_depth)
 
+        self.dtRegressor._add_child_node(self.dtRegressor.root, child_node, decision, branch_depth)
         self.assertEqual(self.dtRegressor.root.get_X_feature_index(), expected_index)
         self.assertEqual(self.dtRegressor.root.get_X_feature_threshold(), expected_threshold)
         self.assertEqual(self.dtRegressor.root.get_regression_result(), expected_result)
@@ -57,13 +60,13 @@ class test_DecisionTreeRegressor(unittest.TestCase):
         self.assertEqual(X_yes.size, 0)
         self.assertEqual(t_yes.size, 0)
         self.assertEqual(X_no.shape, (3, 2))
-        self.assertEqual(t_no.shape, (3,))
 
         X_ones = np.ones((3, 3), dtype=float)
         X_yes, X_no, t_yes, t_no = self.dtRegressor._split_dataset(X_ones, t, 1, 0.5)
 
         self.assertEqual(X_no.size, 0)
         self.assertEqual(t_no.size, 0)
+        self.assertEqual(t_no.shape, (3,))
         self.assertEqual(X_yes.shape, (3, 2))
         self.assertEqual(t_yes.shape, (3,))
 
@@ -152,9 +155,6 @@ class test_DecisionTreeRegressor(unittest.TestCase):
         self.assertEqual(best_index, expected_best_index)
         self.assertEqual(best_threshold, expected_best_threshold)
 
-
-
-
     def test_get_squared_error(self):
         # test if calculation is correct
         X = [4, -4, 4]
@@ -164,6 +164,8 @@ class test_DecisionTreeRegressor(unittest.TestCase):
         self.assertEqual(
             self.dtRegressor._get_squared_error(X, regression_line), expected_result
         )
+
+        # test second case
         X = [0, -4, 4]
         regression_line = 2
 
