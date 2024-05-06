@@ -41,14 +41,14 @@ class DecisionTreeRegressor:
                     features.pop(X_feature_index)
                     is_numeric_feature.pop(X_feature_index)
 
-                X_feature_threshold = current_node.get_threshold()
+                X_feature_threshold = current_node.get_X_feature_threshold()
                 if X[i, X_feature_index] >= X_feature_threshold:
                     next_node = current_node.get_yes_child()
                 else:
                     next_node = current_node.get_no_child()
 
             # prediction is result stored at leaf node
-            prediction[i] = current_node.get_result(X[i, X_feature_index])
+            prediction[i] = current_node.get_regression_result()
 
         return prediction
 
@@ -86,14 +86,14 @@ class DecisionTreeRegressor:
                 t_yes,
                 branch_depth,
                 child_node,
-                decision="yes",
+                decision=True,
             )
             self._build_tree(
                 X_no,
                 t_no,
                 branch_depth,
                 child_node,
-                decision="no",
+                decision=False,
             )
 
     def _create_child_node(self, X_feature_index, X_feature_threshold, t):
@@ -170,6 +170,7 @@ class DecisionTreeRegressor:
 
                 # update return values
                 if best_squared_error > squared_error:
+                    best_squared_error = squared_error
                     best_X_feature_index = X_feature_index
                     best_X_feature_threshold = X[
                         X_feature_threshold_index, X_feature_index
@@ -184,31 +185,6 @@ class DecisionTreeRegressor:
             squared_error += (x - regression_line) ** 2
 
         return squared_error
-
-    def _get_weighted_gini_index(self, X_feature, t):
-        # get weights for weighted gini index
-        X_values, X_value_counts = np.unique(X_feature, return_counts=True)
-        weights = X_value_counts / sum(X_value_counts)
-        gini_indices = np.zeros(X_values.shape)
-
-        for i in range(len(X_values)):
-            # get probabilities of X value & target value
-            X_values_indices = np.where(X_feature == X_values[i])[0]
-            t_values = t[X_values_indices]
-            _, t_counts = np.unique(t_values, return_counts=True)
-            probabilities = t_counts / sum(t_counts)
-
-            # get gini index
-            gini_index = 1
-            for probability in probabilities:
-                gini_index -= probability**2
-
-            gini_indices[i] = gini_index
-
-        # calculate weighted gini index
-        weighted_gini_index = gini_indices @ weights.T
-
-        return weighted_gini_index
 
     def _is_numeric(self, X_feature):
         # assumes no == 0, yes == 1 in discrete case

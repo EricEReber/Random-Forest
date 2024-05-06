@@ -39,14 +39,14 @@ class DecisionTreeClassifier:
                     features.pop(X_feature_index)
                     is_numeric_feature.pop(X_feature_index)
 
-                X_feature_threshold = current_node.get_threshold()
+                X_feature_threshold = current_node.get_X_feature_threshold()
                 if X[i, X_feature_index] >= X_feature_threshold:
                     next_node = current_node.get_yes_child()
                 else:
                     next_node = current_node.get_no_child()
 
             # prediction is result stored at leaf node
-            prediction[i] = current_node.get_result(X[i, X_feature_index])
+            prediction[i] = current_node.get_classification_result(X[i, X_feature_index])
 
         return prediction
 
@@ -84,7 +84,7 @@ class DecisionTreeClassifier:
                     t_yes,
                     branch_depth,
                     child_node,
-                    decision="yes",
+                    decision=True,
                 )
             if X_no.size:
                 self._build_tree(
@@ -92,7 +92,7 @@ class DecisionTreeClassifier:
                     t_no,
                     branch_depth,
                     child_node,
-                    decision="no",
+                    decision=False,
                 )
 
     def _create_child_node(self, X_feature_index, X_feature_threshold, t):
