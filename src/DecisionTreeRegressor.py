@@ -3,10 +3,14 @@ from Nodes import Node
 
 
 class DecisionTreeRegressor:
-    def __init__(self, max_depth=np.inf, min_inputs=7):
+    def __init__(self, max_depth=np.inf, min_inputs=7, alpha=0):
         self.max_depth = max_depth
         self.min_inputs = min_inputs
+        self.alpha = alpha
         self.root = None
+        self.total_squared_loss = 0
+        self.num_leaf_nodes = 0
+        self.tree_score = 0
 
     def fit(self, X, t):
         # build tree recursively
@@ -17,6 +21,17 @@ class DecisionTreeRegressor:
             parent_node=None,
             decision=None,
         )
+        self.calculate_tree_score()
+        # TODO figure out how to do pruning efficiently, because I'd assume I'll need some trackers etc.
+        # One option for pruning would be tracking the depth, then calling _build_tree() with decreasing max_depth
+        # however, I'm not even sure if this is necessary because it seems pruning happens outside the class
+        # since it returns multiple instances of DecisionTreeRegressor, with different numbers of tree nodes.
+        # perhaps fit() could return a depth, which could then be used to prune from the outside
+        # prune() would then be a utils() function that could be combines with CV() that I suppose would
+        # also be in utils.
+
+    def calculate_tree_score(self):
+        self.tree_score = self.total_squared_loss + self.alpha * self.num_leaf_nodes
 
     def predict(self, X):
         # initialize output vector
@@ -55,7 +70,7 @@ class DecisionTreeRegressor:
     def _build_tree(self, X, t, branch_depth, parent_node, decision):
         # TODO: consider using variance decrease similar to gini_index for stop conditions
         # find best place to split dataset
-        X_feature_index, X_feature_threshold = self._get_best_split(X, t)
+        X_feature_index, X_feature_threshold, squared_error = self._get_best_split(X, t)
 
         # create and add child node
         child_node = self._create_child_node(X_feature_index, X_feature_threshold, t)
@@ -77,9 +92,11 @@ class DecisionTreeRegressor:
             or (np.array_equal(X, X_yes))
             or (np.array_equal(X, X_no))
         ):
+            self.num_leaf_nodes += 1
             return
 
         else:
+            self.total_squared_loss += squared_error
             # recursive method call if datasets are not none
             self._build_tree(
                 X_yes,
@@ -176,7 +193,7 @@ class DecisionTreeRegressor:
                         X_feature_threshold_index, X_feature_index
                     ]
 
-        return best_X_feature_index, best_X_feature_threshold
+        return best_X_feature_index, best_X_feature_threshold, best_squared_error
 
     def _get_squared_error(self, X, regression_line):
         # calculate squared_error
