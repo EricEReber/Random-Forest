@@ -1,8 +1,10 @@
 class Node:
-    def __init__(self, X_feature_index, X_feature_threshold, result):
+    def __init__(self, X_feature_index, X_feature_threshold, depth, result):
         self.X_feature_index = X_feature_index
         self.X_feature_threshold = X_feature_threshold
+        self.depth
         self.t = result
+        self.parent = None
         self.yes_child = None
         self.no_child = None
 
@@ -11,6 +13,13 @@ class Node:
             self.yes_child = child_node
         else:
             self.no_child = child_node
+
+    def remove_children(self):
+        self.yes_child = None
+        self.no_child = None
+
+    def add_parent_node(self, parent_node):
+        self.parent = parent_node
 
     def has_children(self):
         if (self.yes_child == None) and (self.no_child == None):
@@ -28,6 +37,12 @@ class Node:
 
     def get_no_child(self):
         return self.no_child
+
+    def get_parent(self):
+        return self.parent
+
+    def get_depth(self):
+        return self.depth
 
     def get_classification_result(self, X_feature):
         if X_feature >= self.X_feature_threshold:

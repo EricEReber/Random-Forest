@@ -9,7 +9,7 @@ class DecisionTreeRegressor:
         self.alpha = alpha
         self.root = None
         self.total_squared_loss = 0
-        self.num_leaf_nodes = 0
+        self.leaf_nodes = {}
         self.tree_score = 0
 
     def fit(self, X, t):
@@ -31,7 +31,35 @@ class DecisionTreeRegressor:
         # also be in utils.
 
     def calculate_tree_score(self):
-        self.tree_score = self.total_squared_loss + self.alpha * self.num_leaf_nodes
+        self.tree_score = self.total_squared_loss + self.alpha * len(self.leaf_nodes)
+
+    def prune(self):
+        # get highest tree depth
+        highest_depth = 0
+        for leaf_node in self.leaf_nodes:
+            if leaf_node.get_depth() > highest_depth:
+                highest_depth = leaf_node.get_depth()
+
+        # edge case where we'd prune root since root has no parent
+        if highest_depth == 0:
+            return highest_depth
+
+        # remove leaf_nodes with highest depth
+        for leaf_node in self.leaf_nodes:
+            if leaf_node.get_depth() == highest_depth:
+                # remove parent's children
+                parent_node = leaf_node.get_parent_node()
+                parent_node.remove_children()
+
+                # add parents to leaf_nodes
+                self.leaf_nodes.add(parent_node)
+
+                # remove leaf node from leaf_nodes
+                self.leaf_nodes.remove(child_node)
+
+        # TODO figure out total_squared_loss calculation
+        # subtract from total_squared_loss
+
 
     def predict(self, X):
         # initialize output vector
@@ -73,7 +101,7 @@ class DecisionTreeRegressor:
         X_feature_index, X_feature_threshold, squared_error = self._get_best_split(X, t)
 
         # create and add child node
-        child_node = self._create_child_node(X_feature_index, X_feature_threshold, t)
+        child_node = self._create_child_node(X_feature_index, X_feature_threshold, branch_depth, t)
         self._add_child_node(parent_node, child_node, decision, branch_depth)
 
         # increase branch_depth counter
@@ -92,7 +120,7 @@ class DecisionTreeRegressor:
             or (np.array_equal(X, X_yes))
             or (np.array_equal(X, X_no))
         ):
-            self.num_leaf_nodes += 1
+            self.leaf_nodes.add(child_node)
             return
 
         else:
@@ -113,10 +141,10 @@ class DecisionTreeRegressor:
                 decision=False,
             )
 
-    def _create_child_node(self, X_feature_index, X_feature_threshold, t):
+    def _create_child_node(self, X_feature_index, X_feature_threshold, branch_depth, t):
         # create and connect child node
         result = np.mean(t)
-        child_node = Node(X_feature_index, X_feature_threshold, result)
+        child_node = Node(X_feature_index, X_feature_threshold, branch_depth, result)
 
         return child_node
 
@@ -126,6 +154,7 @@ class DecisionTreeRegressor:
             self.root = child_node
         else:
             parent_node.add_child_node(child_node, decision)
+            child_node.add_parent_node(parent_node)
 
     def _split_dataset(self, X, t, X_feature_index, X_feature_threshold):
         # the column we will split the dataset on
