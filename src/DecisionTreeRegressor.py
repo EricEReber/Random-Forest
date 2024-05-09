@@ -8,7 +8,7 @@ class DecisionTreeRegressor:
         self.min_inputs = min_inputs
         self.alpha = alpha
         self.root = None
-        self.total_squared_loss = 0
+        self.total_squared_error = 0
         self.leaf_nodes = {}
         self.tree_score = 0
 
@@ -31,22 +31,28 @@ class DecisionTreeRegressor:
         # also be in utils.
 
     def calculate_tree_score(self):
-        self.tree_score = self.total_squared_loss + self.alpha * len(self.leaf_nodes)
+        self.tree_score = self.total_squared_error + self.alpha * len(self.leaf_nodes)
+
+    def get_tree_depth(self):
+        # get highest tree depth
+        tree_depth = 0
+        for leaf_node in self.leaf_nodes:
+            if leaf_node.get_node_depth() > tree_depth:
+                tree_depth = leaf_node.get_node_depth()
+
+        return tree_depth
 
     def prune(self):
-        # get highest tree depth
-        highest_depth = 0
-        for leaf_node in self.leaf_nodes:
-            if leaf_node.get_depth() > highest_depth:
-                highest_depth = leaf_node.get_depth()
+        tree_depth = get_tree_depth()
 
         # edge case where we'd prune root since root has no parent
-        if highest_depth == 0:
-            return highest_depth
+        if tree_depth == 0:
+            # TODO maybe raise error
+            return tree_depth
 
         # remove leaf_nodes with highest depth
         for leaf_node in self.leaf_nodes:
-            if leaf_node.get_depth() == highest_depth:
+            if leaf_node.get_node_depth() == tree_depth:
                 # remove parent's children
                 parent_node = leaf_node.get_parent_node()
                 parent_node.remove_children()
@@ -57,8 +63,8 @@ class DecisionTreeRegressor:
                 # remove leaf node from leaf_nodes
                 self.leaf_nodes.remove(child_node)
 
-        # TODO figure out total_squared_loss calculation
-        # subtract from total_squared_loss
+                # subtract squared_error
+                self.total_squared_error -= leaf_node.get_squared_error()
 
 
     def predict(self, X):
@@ -96,12 +102,13 @@ class DecisionTreeRegressor:
         return prediction
 
     def _build_tree(self, X, t, branch_depth, parent_node, decision):
-        # TODO: consider using variance decrease similar to gini_index for stop conditions
         # find best place to split dataset
         X_feature_index, X_feature_threshold, squared_error = self._get_best_split(X, t)
 
         # create and add child node
-        child_node = self._create_child_node(X_feature_index, X_feature_threshold, branch_depth, t)
+        child_node = self._create_child_node(
+            X_feature_index, X_feature_threshold, branch_depth, squared_error, t
+        )
         self._add_child_node(parent_node, child_node, decision, branch_depth)
 
         # increase branch_depth counter
@@ -124,7 +131,7 @@ class DecisionTreeRegressor:
             return
 
         else:
-            self.total_squared_loss += squared_error
+            self.total_squared_error += squared_error
             # recursive method call if datasets are not none
             self._build_tree(
                 X_yes,
@@ -141,10 +148,14 @@ class DecisionTreeRegressor:
                 decision=False,
             )
 
-    def _create_child_node(self, X_feature_index, X_feature_threshold, branch_depth, t):
+    def _create_child_node(
+        self, X_feature_index, X_feature_threshold, branch_depth, squared_error, t
+    ):
         # create and connect child node
         result = np.mean(t)
-        child_node = Node(X_feature_index, X_feature_threshold, branch_depth, result)
+        child_node = Node(
+            X_feature_index, X_feature_threshold, branch_depth, squared_error, result
+        )
 
         return child_node
 

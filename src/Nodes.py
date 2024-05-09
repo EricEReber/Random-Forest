@@ -1,15 +1,19 @@
 class Node:
-    def __init__(self, X_feature_index, X_feature_threshold, depth, result):
+    # TODO split into RegressorNode and ClassifierNode, but first check what is needed for classifination
+    def __init__(
+        self, X_feature_index, X_feature_threshold, depth, squared_error, result
+    ):
         self.X_feature_index = X_feature_index
         self.X_feature_threshold = X_feature_threshold
         self.depth
         self.t = result
+        self.squared_error = squared_error
         self.parent = None
         self.yes_child = None
         self.no_child = None
 
     def add_child_node(self, child_node, decision):
-        if decision: 
+        if decision:
             self.yes_child = child_node
         else:
             self.no_child = child_node
@@ -43,6 +47,9 @@ class Node:
 
     def get_depth(self):
         return self.depth
+
+    def get_squared_error(self):
+        return self.squared_error
 
     def get_classification_result(self, X_feature):
         if X_feature >= self.X_feature_threshold:
