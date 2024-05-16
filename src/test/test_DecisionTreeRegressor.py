@@ -20,8 +20,10 @@ class test_DecisionTreeRegressor(unittest.TestCase):
         expected_threshold = 1
         t = [10, 20, 30, 40, 50]
         expected_result = np.mean(t)
+        branch_depth = 3
+        squared_error = 10
 
-        child_node = self.dtRegressor._create_child_node(expected_index, expected_threshold, t)
+        child_node = self.dtRegressor._create_child_node(expected_index, expected_threshold, branch_depth, squared_error, t)
         self.assertEqual(child_node.get_X_feature_index(), expected_index)
         self.assertEqual(child_node.get_X_feature_threshold(), expected_threshold)
         self.assertEqual(child_node.get_regression_result(), expected_result)
@@ -60,13 +62,13 @@ class test_DecisionTreeRegressor(unittest.TestCase):
         self.assertEqual(X_yes.size, 0)
         self.assertEqual(t_yes.size, 0)
         self.assertEqual(X_no.shape, (3, 2))
+        self.assertEqual(t_no.shape, (3,))
 
         X_ones = np.ones((3, 3), dtype=float)
         X_yes, X_no, t_yes, t_no = self.dtRegressor._split_dataset(X_ones, t, 1, 0.5)
 
         self.assertEqual(X_no.size, 0)
         self.assertEqual(t_no.size, 0)
-        self.assertEqual(t_no.shape, (3,))
         self.assertEqual(X_yes.shape, (3, 2))
         self.assertEqual(t_yes.shape, (3,))
 
@@ -129,7 +131,7 @@ class test_DecisionTreeRegressor(unittest.TestCase):
         expected_best_index = 0
         expected_best_threshold = 10
 
-        best_index, best_threshold = self.dtRegressor._get_best_split(X, t)
+        best_index, best_threshold, best_squared_error = self.dtRegressor._get_best_split(X, t)
         self.assertEqual(best_index, expected_best_index)
         self.assertEqual(best_threshold, expected_best_threshold)
 
@@ -140,7 +142,7 @@ class test_DecisionTreeRegressor(unittest.TestCase):
         expected_best_index = 0
         expected_best_threshold = 10
 
-        best_index, best_threshold = self.dtRegressor._get_best_split(X, t)
+        best_index, best_threshold, best_squared_error = self.dtRegressor._get_best_split(X, t)
         self.assertEqual(best_index, expected_best_index)
         self.assertEqual(best_threshold, expected_best_threshold)
 
@@ -151,7 +153,7 @@ class test_DecisionTreeRegressor(unittest.TestCase):
         expected_best_index = None
         expected_best_threshold = None
 
-        best_index, best_threshold = self.dtRegressor._get_best_split(X, t)
+        best_index, best_threshold, best_squared_error = self.dtRegressor._get_best_split(X, t)
         self.assertEqual(best_index, expected_best_index)
         self.assertEqual(best_threshold, expected_best_threshold)
 

@@ -9,7 +9,7 @@ class DecisionTreeRegressor:
         self.alpha = alpha
         self.root = None
         self.total_squared_error = 0
-        self.leaf_nodes = {}
+        self.leaf_nodes = set()
         self.tree_score = 0
 
     def fit(self, X, t):
@@ -22,16 +22,10 @@ class DecisionTreeRegressor:
             decision=None,
         )
         self.calculate_tree_score()
-        # TODO figure out how to do pruning efficiently, because I'd assume I'll need some trackers etc.
-        # One option for pruning would be tracking the depth, then calling _build_tree() with decreasing max_depth
-        # however, I'm not even sure if this is necessary because it seems pruning happens outside the class
-        # since it returns multiple instances of DecisionTreeRegressor, with different numbers of tree nodes.
-        # perhaps fit() could return a depth, which could then be used to prune from the outside
-        # prune() would then be a utils() function that could be combines with CV() that I suppose would
-        # also be in utils.
 
     def calculate_tree_score(self):
         self.tree_score = self.total_squared_error + self.alpha * len(self.leaf_nodes)
+        return self.tree_score
 
     def get_tree_depth(self):
         # get highest tree depth
@@ -43,29 +37,32 @@ class DecisionTreeRegressor:
         return tree_depth
 
     def prune(self):
-        tree_depth = get_tree_depth()
+        tree_depth = self.get_tree_depth()
 
         # edge case where we'd prune root since root has no parent
         if tree_depth == 0:
-            # TODO maybe raise error
             return tree_depth
 
         # remove leaf_nodes with highest depth
+        old_leaf_nodes = set()
+        new_leaf_nodes = set()
         for leaf_node in self.leaf_nodes:
             if leaf_node.get_node_depth() == tree_depth:
                 # remove parent's children
-                parent_node = leaf_node.get_parent_node()
+                parent_node = leaf_node.get_parent()
                 parent_node.remove_children()
 
                 # add parents to leaf_nodes
-                self.leaf_nodes.add(parent_node)
+                new_leaf_nodes.add(parent_node)
 
                 # remove leaf node from leaf_nodes
-                self.leaf_nodes.remove(child_node)
+                old_leaf_nodes.add(leaf_node)
 
                 # subtract squared_error
                 self.total_squared_error -= leaf_node.get_squared_error()
 
+        self.leaf_nodes = self.leaf_nodes - old_leaf_nodes
+        self.leaf_nodes.update(new_leaf_nodes)
 
     def predict(self, X):
         # initialize output vector
@@ -110,6 +107,7 @@ class DecisionTreeRegressor:
             X_feature_index, X_feature_threshold, branch_depth, squared_error, t
         )
         self._add_child_node(parent_node, child_node, decision, branch_depth)
+        self.total_squared_error += squared_error
 
         # increase branch_depth counter
         branch_depth += 1
@@ -131,7 +129,6 @@ class DecisionTreeRegressor:
             return
 
         else:
-            self.total_squared_error += squared_error
             # recursive method call if datasets are not none
             self._build_tree(
                 X_yes,
@@ -154,7 +151,11 @@ class DecisionTreeRegressor:
         # create and connect child node
         result = np.mean(t)
         child_node = Node(
-            X_feature_index, X_feature_threshold, branch_depth, squared_error, result
+            X_feature_index,
+            X_feature_threshold,
+            result,
+            node_depth=branch_depth,
+            squared_error=squared_error,
         )
 
         return child_node
