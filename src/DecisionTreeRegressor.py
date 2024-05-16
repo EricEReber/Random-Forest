@@ -3,7 +3,7 @@ from Nodes import Node
 
 
 class DecisionTreeRegressor:
-    def __init__(self, max_depth=np.inf, min_inputs=7, alpha=0):
+    def __init__(self, max_depth=np.inf, min_inputs=0, alpha=0):
         self.max_depth = max_depth
         self.min_inputs = min_inputs
         self.alpha = alpha
