@@ -17,7 +17,7 @@ class test_DecisionTree(unittest.TestCase):
             mnist[0], mnist[1]
         )
 
-        self.dtClassifier = DecisionTreeClassifier(max_depth=np.inf)
+        self.dtClassifier = DecisionTreeClassifier()
 
     def test_predict(self):
         X = np.array([[1, 0, 0], [1, 1, 0], [0, 0, 1]])

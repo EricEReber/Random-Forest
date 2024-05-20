@@ -6,12 +6,17 @@ from sklearn.utils import resample
 class RandomForestRegressor:
 
     def __init__(self):
-        self.list_subset_features = list()
+        # holds features for each tree
+        self.subset_features = list()
+        # holds each tree
         self.forest = list()
 
     def fit(
         self, X, t, num_trees, num_features, max_depth=np.inf, min_inputs=0, alpha=0
     ):
+        self.subset_features = list()
+        self.forest = list()
+        # for each tree
         for n_tree in range(num_trees):
             # bootstrap X, t
             bootstrapped_X, bootstrapped_t = resample(X, t)
@@ -24,7 +29,7 @@ class RandomForestRegressor:
                 total_num_features, num_features, replace=False
             )
             subset_bootstrapped_X = bootstrapped_X[:, subset_features]
-            self.list_subset_features.append(subset_features)
+            self.subset_features.append(subset_features)
 
             # fit decision_tree
             decision_tree = DecisionTreeRegressor(
@@ -39,7 +44,7 @@ class RandomForestRegressor:
         tree_predictions = np.zeros((num_preds, num_trees), dtype=float)
         for n_tree in range(len(self.forest)):
             # use the subset of features corresponding to each tree
-            subset_features = self.list_subset_features[n_tree]
+            subset_features = self.subset_features[n_tree]
             subset_X = X[:, subset_features]
 
             # get the decision tree

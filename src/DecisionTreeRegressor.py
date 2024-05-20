@@ -65,27 +65,35 @@ class DecisionTreeRegressor:
         self.leaf_nodes.update(new_leaf_nodes)
 
     def predict(self, X):
+        num_features = X.shape[1]
+        num_inputs = X.shape[0]
         # initialize output vector
-        prediction = np.zeros((X.shape[0]))
+        prediction = np.zeros((num_inputs))
 
         # for each test input
-        for i in range(X.shape[0]):
+        for i in range(num_inputs):
             # start at root
             current_node = self.root
             next_node = current_node
 
-            # for keeping track of global X_feature_index indices
-            features = [j for j in range(X.shape[1])]
-            is_numeric_feature = [self._is_numeric(X[:, i]) for i in range(X.shape[1])]
-            X_feature_index = 0
+            # for keeping track of global X_feature_index values
+            feature_indices = [j for j in range(num_features)]
+            is_numeric_feature_index = [self._check_if_numeric_feature(X[:, i]) for i in range(num_features)]
 
             # traverse down tree until leaf node
             while next_node is not None:
                 current_node = next_node
-                X_feature_index = features[current_node.get_X_feature_index()]
-                if not is_numeric_feature[X_feature_index]:
-                    features.pop(X_feature_index)
-                    is_numeric_feature.pop(X_feature_index)
+                # select index relative to removed indices
+                X_feature_index = feature_indices[current_node.get_X_feature_index()]
+                print(f"{is_numeric_feature_index=}")
+                print(f"{feature_indices=}")
+                print(f"{X_feature_index=}")
+                # by removing incides of discrete features,
+                # we can keep track of what index corresponds to what features,
+                # as discrete columns are removed during _split_dataset()
+                if not is_numeric_feature_index[X_feature_index]:
+                    feature_indices.pop(X_feature_index)
+                    is_numeric_feature_index.pop(X_feature_index)
 
                 X_feature_threshold = current_node.get_X_feature_threshold()
                 if X[i, X_feature_index] >= X_feature_threshold:
@@ -174,7 +182,7 @@ class DecisionTreeRegressor:
 
         # numeric columns are not deleted as they may be
         # used to create future decisions
-        if not self._is_numeric(X_feature):
+        if not self._check_if_numeric_feature(X_feature):
             X = np.delete(X, X_feature_index, axis=1)
 
         # get indices of rows where X_feature_index > X_feature_threshold
@@ -244,7 +252,7 @@ class DecisionTreeRegressor:
 
         return squared_error
 
-    def _is_numeric(self, X_feature):
+    def _check_if_numeric_feature(self, X_feature):
         # assumes no == 0, yes == 1 in discrete case
         if (
             np.array_equal(np.unique(X_feature), np.array([0, 1]))

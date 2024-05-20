@@ -185,18 +185,18 @@ class test_DecisionTreeRegressor(unittest.TestCase):
         X_ones = np.ones((6, 1))
 
         # test discrete cases
-        self.assertFalse(self.dtRegressor._is_numeric(X_discrete))
-        self.assertFalse(self.dtRegressor._is_numeric(X_discrete_single))
-        self.assertFalse(self.dtRegressor._is_numeric(X_zeros))
-        self.assertFalse(self.dtRegressor._is_numeric(X_ones))
+        self.assertFalse(self.dtRegressor._check_if_numeric_feature(X_discrete))
+        self.assertFalse(self.dtRegressor._check_if_numeric_feature(X_discrete_single))
+        self.assertFalse(self.dtRegressor._check_if_numeric_feature(X_zeros))
+        self.assertFalse(self.dtRegressor._check_if_numeric_feature(X_ones))
 
         # initialize numeric cases
         X_numeric = np.array([9, 1, 0, 4])
         X_numeric_single = np.array([9])
 
         # test numeric cases
-        self.assertTrue(self.dtRegressor._is_numeric(X_numeric))
-        self.assertTrue(self.dtRegressor._is_numeric(X_numeric_single))
+        self.assertTrue(self.dtRegressor._check_if_numeric_feature(X_numeric))
+        self.assertTrue(self.dtRegressor._check_if_numeric_feature(X_numeric_single))
 
 if __name__ == "__main__":
     unittest.main()
