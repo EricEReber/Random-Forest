@@ -120,14 +120,14 @@ class DecisionTreeClassifier:
             X = np.delete(X, X_feature_index, axis=1)
 
         # get indices of rows where X_feature_index > X_feature_threshold
-        yes_indices = np.asarray(X_feature >= X_feature_threshold).nonzero()[0]
-        X_yes = X[yes_indices, :]
-        t_yes = t[yes_indices]
+        yes_input_indices = np.asarray(X_feature >= X_feature_threshold).nonzero()[0]
+        X_yes = X[yes_input_indices, :]
+        t_yes = t[yes_input_indices]
 
         # get indices of rows where X_feature_index < X_feature_threshold
-        no_indices = np.asarray(X_feature < X_feature_threshold).nonzero()[0]
-        X_no = X[no_indices, :]
-        t_no = t[no_indices]
+        no_input_indices = np.asarray(X_feature < X_feature_threshold).nonzero()[0]
+        X_no = X[no_input_indices, :]
+        t_no = t[no_input_indices]
 
         return X_yes, X_no, t_yes, t_no
 

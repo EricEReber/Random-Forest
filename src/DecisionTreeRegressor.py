@@ -77,23 +77,21 @@ class DecisionTreeRegressor:
             next_node = current_node
 
             # for keeping track of global X_feature_index values
-            feature_indices = [j for j in range(num_features)]
+            relative_indices = [j for j in range(num_features)]
             is_numeric_feature_index = [self._check_if_numeric_feature(X[:, i]) for i in range(num_features)]
 
             # traverse down tree until leaf node
             while next_node is not None:
                 current_node = next_node
                 # select index relative to removed indices
-                X_feature_index = feature_indices[current_node.get_X_feature_index()]
-                print(f"{is_numeric_feature_index=}")
-                print(f"{feature_indices=}")
-                print(f"{X_feature_index=}")
+                relative_feature_index = current_node.get_X_feature_index()
+                X_feature_index = relative_indices[relative_feature_index]
                 # by removing incides of discrete features,
                 # we can keep track of what index corresponds to what features,
                 # as discrete columns are removed during _split_dataset()
-                if not is_numeric_feature_index[X_feature_index]:
-                    feature_indices.pop(X_feature_index)
-                    is_numeric_feature_index.pop(X_feature_index)
+                if not is_numeric_feature_index[relative_feature_index]:
+                    is_numeric_feature_index.pop(relative_feature_index)
+                    relative_indices.remove(X_feature_index)
 
                 X_feature_threshold = current_node.get_X_feature_threshold()
                 if X[i, X_feature_index] >= X_feature_threshold:
@@ -138,20 +136,22 @@ class DecisionTreeRegressor:
 
         else:
             # recursive method call if datasets are not none
-            self._build_tree(
-                X_yes,
-                t_yes,
-                branch_depth,
-                child_node,
-                decision=True,
-            )
-            self._build_tree(
-                X_no,
-                t_no,
-                branch_depth,
-                child_node,
-                decision=False,
-            )
+            if X_yes.size:
+                self._build_tree(
+                    X_yes,
+                    t_yes,
+                    branch_depth,
+                    child_node,
+                    decision=True,
+                )
+            if X_no.size:
+                self._build_tree(
+                    X_no,
+                    t_no,
+                    branch_depth,
+                    child_node,
+                    decision=False,
+                )
 
     def _create_child_node(
         self, X_feature_index, X_feature_threshold, branch_depth, squared_error, t
@@ -186,14 +186,14 @@ class DecisionTreeRegressor:
             X = np.delete(X, X_feature_index, axis=1)
 
         # get indices of rows where X_feature_index > X_feature_threshold
-        yes_indices = np.asarray(X_feature >= X_feature_threshold).nonzero()[0]
-        X_yes = X[yes_indices, :]
-        t_yes = t[yes_indices]
+        yes_input_indices = np.asarray(X_feature >= X_feature_threshold).nonzero()[0]
+        X_yes = X[yes_input_indices, :]
+        t_yes = t[yes_input_indices]
 
         # get indices of rows where X_feature_index < X_feature_threshold
-        no_indices = np.asarray(X_feature < X_feature_threshold).nonzero()[0]
-        X_no = X[no_indices, :]
-        t_no = t[no_indices]
+        no_input_indices = np.asarray(X_feature < X_feature_threshold).nonzero()[0]
+        X_no = X[no_input_indices, :]
+        t_no = t[no_input_indices]
 
         return X_yes, X_no, t_yes, t_no
 
