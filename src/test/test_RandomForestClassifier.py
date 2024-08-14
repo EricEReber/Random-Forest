@@ -40,7 +40,6 @@ class test_RandomForestClassifier(unittest.TestCase):
 
         NUM_FEATURES = 3
         self.rf_classifier.fit(X, t, NUM_TREES, NUM_FEATURES, MAX_DEPTH)
-        print(self.rf_classifier.predict(X))
 
         self.assertEqual(self.rf_classifier.predict(X).shape, t.shape)
 
